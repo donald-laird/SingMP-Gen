@@ -229,11 +229,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const finalConfig = JSON.parse(JSON.stringify(singBoxTemplate));
         
+        // --- Start of Final Logic ---
+        
+        // 1. Prepare base arrays
         finalConfig.inbounds = [];
         finalConfig.dns.servers = finalConfig.dns.servers.filter(s => ['local_dns', 'block_dns'].includes(s.tag));
         finalConfig.dns.rules = finalConfig.dns.rules.filter(r => r.rule_set && r.rule_set.includes('geosite-cn'));
         finalConfig.route.rules = finalConfig.route.rules.filter(r => r.rule_set || r.ip_is_private || r.clash_mode);
         
+        // ** NEW ** Add a global DNS strategy to prefer IPv4 and avoid IPv6 errors
+        finalConfig.dns.strategy = "prefer_ipv4";
+
         const userOutbounds = JSON.parse(JSON.stringify(outbounds));
         const baseOutbounds = finalConfig.outbounds.filter(o => ['direct', 'block'].includes(o.tag));
         finalConfig.outbounds = [...userOutbounds, ...baseOutbounds];
@@ -241,6 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let defaultNodeTag = document.querySelector('input[name="default-node"]:checked').value;
         let defaultDnsServerTag = '';
 
+        // 2. Extract proxy server hostnames to create a DNS exemption rule
         const proxyHostnames = [...new Set(userOutbounds
             .map(o => o.server)
             .filter(server => server && !/^\d{1,3}(\.\d{1,3}){3}$/.test(server))
@@ -250,6 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             finalConfig.dns.rules.unshift({ "domain": proxyHostnames, "server": "local_dns" });
         }
 
+        // 3. Create Inbounds, DNS servers, DNS rules, and Route rules for each node
         const nodeElements = nodesListContainer.querySelectorAll('.grid.grid-cols-12.gap-2.items-center');
         nodeElements.forEach((el, index) => {
             if (index === 0) return;
@@ -272,11 +280,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        // 4. Set default routes and final DNS
         finalConfig.route.final = defaultNodeTag;
         finalConfig.dns.final = defaultDnsServerTag;
         
         const globalModeRule = finalConfig.route.rules.find(r => r.clash_mode === "Global");
         if(globalModeRule) globalModeRule.outbound = defaultNodeTag;
+
+        // --- End of Final Logic ---
 
         configOutput.value = JSON.stringify(finalConfig, null, 2);
         outputSection.classList.remove('hidden');
