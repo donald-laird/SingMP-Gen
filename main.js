@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let outbounds = [];
     let langData = {};
     let singBoxTemplate = null;
+    let isLoading = false;
 
     // Element references
     const nodesInput = document.getElementById('nodes-input');
@@ -15,13 +16,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const startPortInput = document.getElementById('start-port');
     const nodesListContainer = document.getElementById('nodes-list');
     const generateBtn = document.getElementById('generate-btn');
-    const configSection = document.getElementById('config-section');
+    const configContent = document.getElementById('config-content'); // Changed from configSection
     const outputSection = document.getElementById('output-section');
     const configOutput = document.getElementById('config-output');
     const copyBtn = document.getElementById('copy-btn');
     const downloadBtn = document.getElementById('download-btn');
     const langSwitcher = document.getElementById('language-switcher');
+    const loadingOverlay = document.getElementById('loading-overlay');
     
+    // --- UI State Management ---
+    const setLoading = (state) => {
+        isLoading = state;
+        if (state) {
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+            nodesInput.disabled = true;
+        } else {
+            loadingOverlay.classList.add('hidden');
+            loadingOverlay.classList.remove('flex');
+            nodesInput.disabled = false;
+        }
+    };
+
     // --- Internationalization (i18n) ---
     const fetchLanguageFile = async (lang) => {
         const url = `${lang}.yml`;
@@ -120,13 +136,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Check for duplicates
-            if (portValues.has(port)) {
-                const duplicates = portValues.get(port);
-                duplicates.push(input);
-                portValues.set(port, duplicates);
-            } else {
-                portValues.set(port, [input]);
-            }
+            if (portValues.has(port)) portValues.get(port).push(input);
+            else portValues.set(port, [input]);
         }
 
         let hasDuplicates = false;
@@ -139,7 +150,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (!allPortsValid) return { valid: false, error: 'invalid' };
         if (hasDuplicates) return { valid: false, error: 'duplicate' };
-
         return { valid: true, error: null };
     };
 
@@ -158,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 outbounds = potentialOutbounds.filter(node => node && typeof node === 'object' && node.tag);
                 if (outbounds.length > 0) {
                     renderNodeList();
-                    configSection.classList.remove('hidden');
+                    configContent.classList.remove('hidden'); // Show content
                     generateBtn.disabled = false;
                     generateBtn.textContent = langData.generateBtn;
                 } else {
@@ -170,6 +180,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             alert(langData.errorInvalidJSON);
             resetConfigView();
+        }
+    };
+    
+    // --- Subscription Handling ---
+    const fetchSubscription = async (url) => {
+        // Using a public CORS proxy to fetch subscription content
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        setLoading(true);
+        try {
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            nodesInput.value = text; // Populate textarea with fetched content
+            // *** BUG FIX STARTS HERE ***
+            // Directly call the parsing function, bypassing the handleInput's loading check.
+            parseAndRenderNodes(text);
+            // *** BUG FIX ENDS HERE ***
+        } catch (error) {
+            console.error("Subscription fetch error:", error);
+            alert(langData.errorSubscriptionFetch);
+            resetConfigView();
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    // --- Main Input Processor ---
+    const handleInput = (text) => {
+        if (isLoading) return;
+        const trimmedText = text.trim();
+        if (!trimmedText) {
+            resetConfigView();
+            return;
+        }
+
+        // Check if the input is a URL
+        if (trimmedText.startsWith('http://') || trimmedText.startsWith('https://')) {
+            fetchSubscription(trimmedText);
+        } else {
+            // Assume it's JSON content
+            parseAndRenderNodes(trimmedText);
         }
     };
 
@@ -208,7 +259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const resetConfigView = () => {
-        configSection.classList.add('hidden');
+        configContent.classList.add('hidden'); // Hide content
         outputSection.classList.add('hidden');
         generateBtn.disabled = true;
         generateBtn.textContent = langData.generateBtnDisabled;
@@ -264,7 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const node = outbounds[index-1];
             const portInput = el.querySelector('.node-port');
             const radioInput = el.querySelector('.default-node-radio');
-
             const port = parseInt(portInput.value, 10);
             const tag = node.tag;
             const inboundTag = `in-${port}`;
@@ -275,15 +325,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             finalConfig.dns.rules.push({ "inbound": inboundTag, "server": dnsServerTag });
             finalConfig.route.rules.unshift({ "inbound": inboundTag, "outbound": tag });
 
-            if (radioInput.checked) {
-                defaultDnsServerTag = dnsServerTag;
-            }
+            if (radioInput.checked) defaultDnsServerTag = dnsServerTag;
         });
 
         // 4. Set default routes and final DNS
         finalConfig.route.final = defaultNodeTag;
         finalConfig.dns.final = defaultDnsServerTag;
-        
         const globalModeRule = finalConfig.route.rules.find(r => r.clash_mode === "Global");
         if(globalModeRule) globalModeRule.outbound = defaultNodeTag;
 
@@ -296,10 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Event Listeners ---
     langSwitcher.addEventListener('change', (e) => setLanguage(e.target.value));
 
-    nodesInput.addEventListener('input', () => {
-        if (nodesInput.value.trim()) parseAndRenderNodes(nodesInput.value);
-        else resetConfigView();
-    });
+    nodesInput.addEventListener('input', (e) => handleInput(e.target.value));
 
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -307,7 +351,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             const reader = new FileReader();
             reader.onload = (event) => {
                 nodesInput.value = event.target.result;
-                parseAndRenderNodes(event.target.result);
+                handleInput(event.target.result);
+            };
+            reader.readAsText(file);
+        }
+    });
+    
+    // Drag and Drop Listeners
+    nodesInput.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        nodesInput.classList.add('drag-over');
+    });
+    nodesInput.addEventListener('dragleave', () => {
+        nodesInput.classList.remove('drag-over');
+    });
+    nodesInput.addEventListener('drop', (e) => {
+        e.preventDefault();
+        nodesInput.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                nodesInput.value = event.target.result;
+                handleInput(event.target.result);
             };
             reader.readAsText(file);
         }
