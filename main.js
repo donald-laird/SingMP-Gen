@@ -134,6 +134,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 input.classList.add('border-red-500', 'focus:ring-red-500');
                 allPortsValid = false;
             }
+
+            // Check for duplicates
             if (portValues.has(port)) portValues.get(port).push(input);
             else portValues.set(port, [input]);
         }
@@ -380,12 +382,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     startPortInput.addEventListener('input', () => {
         const ports = document.querySelectorAll('.node-port');
         const startingPort = parseInt(startPortInput.value, 10);
-        ports.forEach((port, index) => { port.value = startingPort + index; });
-        validatePorts();
+        ports.forEach((port, index) => {
+            port.value = startingPort + index;
+        });
+        validatePorts(); // Validate on batch change
     });
 
+    // Live validation for individual port changes
     nodesListContainer.addEventListener('input', (e) => {
-        if (e.target.classList.contains('node-port')) validatePorts();
+        if (e.target.classList.contains('node-port')) {
+            validatePorts();
+        }
     });
 
     generateBtn.addEventListener('click', generateConfig);
