@@ -4,6 +4,8 @@
 
 A pure front-end web application designed to help users quickly and easily generate multi-port, multi-outbound configuration files for the `sing-box` core. It is particularly suitable for scenarios requiring the management of multiple independent network environments on a single computer using fingerprint browsers or different browsers with Socks5 nodes, such as in cross-border e-commerce operations and multi-account management.
 
+[Demo](https://singmp.hotrue.cc/)
+
 ## What's the pain point?
 
 Many cross-border e-commerce operators or developers have multiple proxy nodes, but common proxy clients (like Clash, v2RayN) only support a single global outbound by default. This makes it difficult to assign different outbound IPs to different applications or browser windows. Although the `sing-box` core supports "port-based traffic splitting" through complex configurations, manually writing the JSON configuration file is challenging and error-prone for non-technical users.
