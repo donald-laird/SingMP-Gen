@@ -24,7 +24,8 @@ This tool automates this complex process through an intuitive graphical interfac
 
 ## 🚀 How to Use
 
-Due to browser security policies, this project cannot be run by directly opening the `index.html` file via the `file://` protocol. You need to access it through a local web server.
+Due to browser security policies, this project cannot be run by directly opening the `index.html` file via the `file://` protocol. You need to access it through a web server.
+You can directly fork the project and then deploy it to your own Cloudflare Pages or Github Pages.
 
 **Recommended Method: Using Python**
 
@@ -46,7 +47,9 @@ Due to browser security policies, this project cannot be run by directly opening
 
 5. Open your browser and navigate to `http://localhost:8000`.
 
-You should now see the tool's interface and can start using it.
+You should now see the tool's interface and can start using it, as bellow.
+
+![](img/Sing-Box-Multi-port-Config-Generator-01.png)
 
 ## 🛠️ Tech Stack
 

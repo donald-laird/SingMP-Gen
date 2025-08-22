@@ -24,9 +24,10 @@
 
 ## 🚀 如何使用
 
-由于浏览器安全策略的限制，本项目不能直接通过 `file://` 协议打开 `index.html` 文件运行。您需要通过一个本地 Web 服务器来访问它。
+由于浏览器安全策略的限制，本项目不能直接通过 `file://` 协议打开 `index.html` 文件运行。您需要通过一个 Web 服务器来访问它。
+当然也可以直接 Fork 项目，再部署到自己的 Cloudflare Pages 或者 Github Pages 上。
 
-**推荐方式：使用 Python**
+### 推荐方式：使用 Python
 
 1. 确保您的电脑已安装 Python。
 
@@ -46,7 +47,32 @@
 
 5. 打开您的浏览器，访问 `http://localhost:8000`。
 
-现在，您应该可以看到工具界面并开始使用了。
+现在，您应该可以看到工具界面并开始使用了，如图：
+
+![](img/Sing-Box-Multi-port-Config-Generator-01.png)
+
+### 使用方法
+
+打开工具网页，如上图。
+
+1. 粘贴 sing-box 订阅链接或者直接粘贴 sing-box 格式的节点信息。
+
+> [!note]
+> 目前我觉得最方便好用的订阅节点管理和转换工具可以推荐 [Sub-Store](https://github.com/sub-store-org/Sub-Store)。
+
+2. 设置起始端口，默认从 50000 开始。
+3. 设置默认节点，可以按默认，或者根据自己需要设置一个默认节点。比如我们使用 v2rayN 最常用 10808 作本地监听默认端口。
+4. 最后生成配置后，直接复制或者下载 `config.json` 到本地，导入客户端便可使用。
+
+![](img/Sing-Box-Multi-port-Config-Generator-02.png)
+
+5. 导入客户端，以 v2rayN 为例，通过 `配置文件` - `添加自定义配置文件` 导入配置
+
+![](img/Sing-Box-Multi-port-Config-Generator-03.png)
+
+6. 配置文件可以按需起个别名，`Core 类型` 那里需要选 `sing_box`。最后确定，再在主界面选择添加的这个配置激活就可以了。
+
+![](img/Sing-Box-Multi-port-Config-Generator-04.png)
 
 ## 🛠️ 技术栈
 
